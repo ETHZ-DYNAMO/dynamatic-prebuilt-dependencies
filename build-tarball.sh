@@ -1,12 +1,15 @@
 #!/bin/bash
-# Builds the prebuilt LLVM (release, with assertions) that build.sh downloads
-# from the llvm-$LLVM_VERSION release of
+# Builds the prebuilt LLVM and CIRCT (release, with assertions) that build.sh
+# downloads from the llvm-$LLVM_VERSION-circt-$CIRCT_VERSION release of
 # ETHZ-DYNAMO/dynamatic-prebuilt-dependencies
 set -e
 
 # Name the tarball file using the start of the commit hash
 LLVM_COMMIT=$(git -C llvm-project rev-parse HEAD)
 LLVM_VERSION=${LLVM_COMMIT:0:7}
+# The release tag of the CIRCT submodule without its "firtool-" prefix
+CIRCT_TAG=$(git -C circt describe --tags)
+CIRCT_VERSION=${CIRCT_TAG#firtool-}
 WORK_DIR=$(realpath .)
 
 cd llvm-project
@@ -24,6 +27,9 @@ build_and_archive() {
     -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
     -DLLVM_ENABLE_PROJECTS="mlir;clang;polly" \
     -DLLVM_ENABLE_ASSERTIONS=ON \
+    -DLLVM_EXTERNAL_PROJECTS="circt" \
+    -DLLVM_EXTERNAL_CIRCT_SOURCE_DIR="$WORK_DIR/circt" \
+    -DVERILATOR_DISABLE=ON \
     -DLLVM_CCACHE_BUILD=ON \
     -DLLVM_USE_LINKER=lld \
     -DCMAKE_CXX_COMPILER=clang++ \
@@ -54,9 +60,9 @@ build_and_archive() {
   tar -czf "$WORK_DIR/$NAME.tar.gz" -C "$INSTALL_DIR" .
 }
 
-build_and_archive Release "llvm-$LLVM_VERSION-x86_64-linux"
+build_and_archive Release "llvm-$LLVM_VERSION-circt-$CIRCT_VERSION-x86_64-linux"
 
 cd "$WORK_DIR"
 
-ls -l "llvm-$LLVM_VERSION-x86_64-linux.tar.gz"
-sha256sum "llvm-$LLVM_VERSION-x86_64-linux.tar.gz" > "llvm-$LLVM_VERSION.sha256"
+ls -l "llvm-$LLVM_VERSION-circt-$CIRCT_VERSION-x86_64-linux.tar.gz"
+sha256sum "llvm-$LLVM_VERSION-circt-$CIRCT_VERSION-x86_64-linux.tar.gz" > "llvm-$LLVM_VERSION-circt-$CIRCT_VERSION.sha256"
